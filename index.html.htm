@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Qualidade Unificada</title>
+    
+    <!-- Dependências Unificadas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Scripts para Gráficos e Calendário (do painel.htm) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/plugins/ranges.js"></script>
+
+    <style>
+        /* --- ESTILOS GLOBAIS E DO MENU --- */
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f1f5f9;
+            overflow: hidden; /* Evita rolagem durante o splash screen */
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+
+        /* Estilos do Splash Screen */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1f2937, #374151); /* Fundo escuro para contraste */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.7s ease-out;
+            color: #e5e7eb; /* Cor do texto claro */
+        }
+
+        #splash-screen.fade-out {
+            opacity: 0;
+            pointer-events: none; /* Desabilita interações durante o fade-out */
+        }
+
+        #splash-screen .logo-container {
+            position: relative;
+            margin-bottom: 2rem;
+            display: flex; /* Adicionado para centralizar conteúdo */
+            flex-direction: column; /* Adicionado para centralizar conteúdo */
+            align-items: center; /* Adicionado para centralizar conteúdo */
+            justify-content: center; /* Adicionado para centralizar conteúdo */
+        }
+
+        #splash-screen .logo-icon {
+            font-size: 6rem; /* Tamanho grande para o ícone */
+            color: #3b82f6; /* Azul primário para destaque */
+            text-shadow: 0px 4px 15px rgba(59, 130, 246, 0.4); /* Sombra para o ícone */
+            animation: pulse 1.5s infinite alternate; /* Animação de pulso */
+        }
+
+        @keyframes pulse {
+            from { transform: scale(0.95); opacity: 0.8; }
+            to { transform: scale(1.05); opacity: 1; }
+        }
+
+        #splash-screen .logo-text {
+            font-family: 'Poppins', sans-serif;
+            font-size: 3.5rem; /* Tamanho grande para o texto */
+            font-weight: 700;
+            letter-spacing: 0.15rem;
+            text-transform: uppercase;
+            margin-top: 1rem;
+            color: #ffffff; /* Branco puro para o nome */
+            position: relative;
+        }
+
+        #splash-screen .logo-text::after {
+            content: '';
+            display: block;
+            width: 80%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+            margin: 0.5rem auto 0;
+            border-radius: 2px;
+            animation: expandLine 2s ease-out forwards;
+        }
+
+        @keyframes expandLine {
+            from { width: 0%; }
+            to { width: 80%; }
+        }
+
+        /* --- ESTILOS DO PAINEL DE ANÁLISE (painel-1.0.htm) --- */
+        #painel-container { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin: auto; height: 320px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .tab-active { border-color: #3b82f6; color: #3b82f6; background-color: #eff6ff; }
+        .loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(241, 245, 249, 0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+
+        /* --- ESTILOS DO REGISTRO DE TESTES (recall-1.0.htm) --- */
+        #recall-container { --primary-color: #3B82F6; --primary-dark: #2563EB; --primary-light: #DBEAFE; --accent-color: #F59E0B; --background-gradient: linear-gradient(135deg, #F3F4F6, #E5E7EB); --card-background: #ffffff; --text-color: #1F2937; --text-color-light: #4B5563; --placeholder-color: #9CA3AF; --border-color: #D1D5DB; --focus-border-color: var(--primary-color); --focus-shadow-color: rgba(59, 130, 246, 0.25); --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03); --shadow-sm: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04); --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); --success-bg: #D1FAE5; --success-border: #10B981; --success-text: #047857; --failure-bg: #FEE2E2; --failure-border: #EF4444; --failure-text: #B91C1C; --na-bg: #E5E7EB; --na-border: #9CA3AF; --na-text: #4B5563; --font-family: 'Poppins', sans-serif; }
+        #recall-container { font-family: var(--font-family); }
+        #recall-container *, #recall-container *::before, #recall-container *::after { box-sizing: border-box; }
+        #recall-container .app { background: var(--card-background); padding: 35px 40px; border-radius: 20px; box-shadow: var(--shadow-lg); width: 100%; max-width: 850px; display: flex; flex-direction: column; gap: 25px; position: relative; margin-bottom: auto; }
+        #recall-container h1 { text-align: center; font-size: 2.2rem; color: var(--primary-color); margin-top: 30px; margin-bottom: 15px; font-weight: 700; }
+        #recall-container .field { display: flex; flex-direction: column; gap: 10px; }
+        #recall-container label { font-weight: 600; color: var(--text-color); font-size: 0.9rem; }
+        #recall-container select, #recall-container input[type="text"] { font-family: var(--font-family); padding: 14px 16px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 16px; transition: border-color 0.25s ease, box-shadow 0.25s ease; color: var(--text-color); background-color: #f8fafc; box-shadow: var(--shadow-xs); }
+        #recall-container select:focus, #recall-container input[type="text"]:focus { border-color: var(--focus-border-color); box-shadow: 0 0 0 3px var(--focus-shadow-color); outline: none; }
+        #recall-container fieldset { border: none; padding: 0; margin-top: 15px; }
+        #recall-container legend { font-weight: 600; margin-bottom: 15px; color: var(--primary-dark); font-size: 1.1rem; }
+        #recall-container .components { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        #recall-container .component { background: var(--na-bg); padding: 15px 20px; border-radius: 12px; box-shadow: var(--shadow-sm); display: flex; flex-direction: row; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; transition: all 0.3s ease; border: 1px solid var(--na-border); }
+        #recall-container .component.unmarked-highlight { box-shadow: 0 0 0 3px var(--failure-border), var(--shadow-md) !important; transform: scale(1.01); }
+        #recall-container .component:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        #recall-container .component .icon { font-size: 1.8rem; transition: transform 0.3s ease, color 0.3s ease; order: 2; }
+        #recall-container .component-info { display: flex; flex-direction: column; flex-grow: 1; margin-right: 15px; order: 1; }
+        #recall-container .component span { font-weight: 500; font-size: 1rem; color: var(--na-text); pointer-events: none; }
+        #recall-container .component textarea { font-family: var(--font-family); width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; resize: vertical; min-height: 40px; margin-top: 8px; }
+        #recall-container .status-na { background-color: var(--na-bg); border-color: var(--na-border); }
+        #recall-container .status-na span, #recall-container .status-na .icon { color: var(--na-text); }
+        #recall-container .status-ok { background-color: var(--success-bg); border-color: var(--success-border); }
+        #recall-container .status-ok span, #recall-container .status-ok .icon { color: var(--success-text); }
+        #recall-container .status-falha { background-color: var(--failure-bg); border-color: var(--failure-border); }
+        #recall-container .status-falha span, #recall-container .status-falha .icon { color: var(--failure-text); }
+        #recall-container button[type="submit"] { font-family: var(--font-family); padding: 15px 20px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: #fff; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 20px; box-shadow: var(--shadow-md); }
+        #recall-container button[type="submit"]:hover:not(:disabled) { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        #recall-container button[type="submit"]:disabled { background-color: #BDBDBD; cursor: not-allowed; }
+        #recall-container #status { text-align: center; font-size: 0.95rem; font-weight: 500; margin-top: 15px; padding: 12px 15px; border-radius: 10px; border: 1px solid transparent; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
+        #recall-container #status.active { opacity: 1; transform: translateY(0); }
+        #recall-container #status.success { background-color: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+        #recall-container #status.error { background-color: var(--failure-bg); color: var(--failure-text); border-color: var(--failure-border); }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 41, 59, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.35s ease; }
+        .modal.visible { display: flex; opacity: 1; visibility: visible; }
+        .modal-content { background: var(--card-background, #fff); padding: 35px; border-radius: 18px; box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)); width: 90%; max-width: 550px; transform: translateY(30px) scale(0.95); opacity: 0; transition: transform 0.35s ease, opacity 0.35s ease; display: flex; flex-direction: column; gap: 25px; }
+        .modal.visible .modal-content { transform: translateY(0) scale(1); opacity: 1; }
+        .modal-content h2 { font-size: 1.9rem; color: var(--primary-color); margin-bottom: 5px; text-align: center; font-weight: 600; }
+        .modal-content.feedback h2 { color: var(--accent-color); }
+        .modal-content p { font-size: 1rem; line-height: 1.6; text-align: center; color: var(--text-color-light, #4B5563); }
+        .modal-content textarea, .modal-content select { font-family: var(--font-family); width: 100%; padding: 14px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 16px; color: var(--text-color); background-color: #f8fafc; }
+        .modal-content textarea:focus, .modal-content select:focus { border-color: var(--focus-border-color); box-shadow: 0 0 0 3px var(--focus-shadow-color); outline: none; }
+        .modal-actions { display: flex; justify-content: space-around; gap: 20px; margin-top: 10px; }
+        .modal-actions button { font-family: var(--font-family); flex: 1; padding: 14px 22px; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.25s ease; }
+        .modal-actions button:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .modal-actions button.confirm { background-color: var(--primary-color); color: #fff; }
+        .modal-actions button.confirm:hover { background-color: var(--primary-dark); }
+        .modal-actions button.cancel { background-color: #B0BEC5; color: var(--text-color); }
+        .modal-actions button.cancel:hover { background-color: #90A4AE; }
+        .modal-actions button.submit-feedback-btn { background-color: var(--accent-color); color: #fff; }
+        .modal-actions button.submit-feedback-btn:hover { background-color: var(--accent-dark); }
+        #recall-container .feedback-btn { position: fixed; background: linear-gradient(135deg, #6B7280, #4B5563); color: white; border: none; border-radius: 50%; width: 60px; height: 60px; font-size: 1.6rem; cursor: pointer; box-shadow: var(--shadow-lg); display: flex; justify-content: center; align-items: center; transition: all 0.3s ease; z-index: 999; bottom: 30px; right: 30px; }
+        #recall-container .feedback-btn:hover { transform: translateY(-5px) scale(1.1); box-shadow: var(--shadow-xl); }
+        #recall-container .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--background-gradient); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; transition: opacity 0.5s ease; }
+        #recall-container .login-screen.hidden-auth { opacity: 0; visibility: hidden; }
+        #recall-container .login-container { background: var(--card-background); padding: 40px; border-radius: 24px; box-shadow: var(--shadow-xl); width: 100%; max-width: 450px; text-align: center; transform: translateY(0); opacity: 1; animation: fadeInUpLogin 0.6s ease-out; }
+        @keyframes fadeInUpLogin { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        #recall-container .login-container h1 { margin-bottom: 20px; font-size: 2rem; }
+        #recall-container .login-container input[type="text"] { margin-bottom: 20px; }
+        #recall-container .color-picker-field { margin-bottom: 30px; }
+        #recall-container .color-options { display: flex; justify-content: space-between; gap: 12px; }
+        #recall-container .color-option { flex-grow: 1; height: 45px; border-radius: 10px; cursor: pointer; transition: all 0.25s ease; border: 3px solid transparent; display: flex; justify-content: center; align-items: center; }
+        #recall-container .color-option:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+        #recall-container .color-option.selected { border-color: #fff; box-shadow: 0 0 0 3px var(--primary-color); }
+        #recall-container .color-option.selected i { opacity: 1; }
+        #recall-container .color-option i { color: var(--text-color); font-size: 1.1rem; opacity: 0; transition: opacity 0.25s ease; }
+        #recall-container .login-container button { font-family: var(--font-family); width: 100%; padding: 16px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow-md); }
+        #recall-container .login-container button:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        #recall-container .tester-name-display { position: absolute; top: 25px; left: 25px; display: none; background-color: var(--primary-color); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: 500; box-shadow: var(--shadow-md); align-items: center; gap: 8px; z-index: 10; }
+        @media (min-width: 768px) { #recall-container .components { grid-template-columns: repeat(2, 1fr); gap: 15px; } }
+        
+        #helpModal .modal-content { max-width: 650px; text-align: left;}
+        #helpModal h3 { font-size: 1.25rem; font-weight: 600; color: #1e3a8a; margin-top: 1rem; margin-bottom: 0.5rem; }
+        #helpModal ul { list-style-type: disc; padding-left: 20px; margin-bottom: 1rem; color: #4b5563;}
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen">
+        <div class="logo-container">
+            <i class="fas fa-microchip logo-icon"></i> <!-- Ícone de microchip para hardware -->
+            <div class="logo-text">NEXUS</div>
+        </div>
+        <div class="spinner text-blue-400 mt-8 text-3xl"><i class="fas fa-sync fa-spin"></i></div>
+    </div>
+
+    <!-- CABEÇALHO FIXO -->
+    <header class="bg-white shadow-md w-full z-20 flex-shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                 <i class="fas fa-cubes text-2xl text-blue-600"></i>
+                 <h1 class="text-xl md:text-2xl font-bold text-slate-800">Central de Qualidade</h1>
+            </div>
+            <button id="homeButton" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i>
+                <span>Voltar ao Menu</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+    <main class="flex-grow flex flex-col min-h-0">
+
+        <!-- CONTAINER DO MENU -->
+        <div id="menu-container" class="max-w-4xl w-full mx-auto text-center p-4 sm:p-8 flex flex-col justify-center flex-grow">
+            <div class="mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-900">Bem-vindo!</h2>
+                <p class="mt-2 text-lg text-slate-600">Selecione uma das ferramentas para começar.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div id="open-painel" class="cursor-pointer group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 ease-in-out flex flex-col text-left">
+                    <div class="flex-shrink-0"><i class="fas fa-chart-pie text-4xl text-blue-500 mb-4"></i></div>
+                    <div class="flex-grow">
+                        <h3 class="text-2xl font-semibold mb-2 text-slate-900">Painel de Análise</h3>
+                        <p class="text-slate-600">Visualize gráficos e métricas detalhadas sobre os testes de qualidade.</p>
+                    </div>
+                    <div class="mt-6"><span class="font-semibold text-blue-600 group-hover:text-blue-700 transition-colors">Acessar Painel <i class="fas fa-arrow-right ml-1"></i></span></div>
+                </div>
+                <div id="open-recall" class="cursor-pointer group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 ease-in-out flex flex-col text-left">
+                    <div class="flex-shrink-0"><i class="fas fa-clipboard-list text-4xl text-amber-500 mb-4"></i></div>
+                    <div class="flex-grow">
+                        <h3 class="text-2xl font-semibold mb-2 text-slate-900">Registrar Novo Teste</h3>
+                        <p class="text-slate-600">Preencha o formulário para registrar um novo resultado de teste.</p>
+                    </div>
+                    <div class="mt-6"><span class="font-semibold text-amber-600 group-hover:text-amber-700 transition-colors">Iniciar Registro <i class="fas fa-arrow-right ml-1"></i></span></div>
+                </div>
+                <!-- Botão para a Área de Produção -->
+                <div id="open-producao" class="cursor-pointer group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 ease-in-out flex flex-col text-left">
+                    <div class="flex-shrink-0"><i class="fas fa-industry text-4xl text-purple-600 mb-4"></i></div>
+                    <div class="flex-grow">
+                        <h3 class="text-2xl font-semibold mb-2 text-slate-900">Área de Produção</h3>
+                        <p class="text-slate-600">Gerencie e visualize informações sobre a fabricação de dispositivos.</p>
+                    </div>
+                    <div class="mt-6"><span class="font-semibold text-purple-600 group-hover:text-purple-700 transition-colors">Acessar Produção <i class="fas fa-arrow-right ml-1"></i></span></div>
+                </div>
+                <div id="open-help" class="cursor-pointer group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 ease-in-out flex flex-col text-left">
+                    <div class="flex-shrink-0"><i class="fas fa-question-circle text-4xl text-green-500 mb-4"></i></div>
+                    <div class="flex-grow">
+                        <h3 class="text-2xl font-semibold mb-2 text-slate-900">Dúvidas e Informações</h3>
+                        <p class="text-slate-600">Clique aqui para ver um guia rápido de como utilizar as ferramentas disponíveis.</p>
+                    </div>
+                    <div class="mt-6"><span class="font-semibold text-green-600 group-hover:text-green-700 transition-colors">Ver Guia <i class="fas fa-arrow-right ml-1"></i></span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTAINER DO PAINEL DE ANÁLISE (INICIALMENTE OCULTO) -->
+        <div id="painel-container" class="hidden flex-grow overflow-y-auto">
+            <div id="app-painel" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 text-slate-800">
+                <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+                    <div><h1 class="text-3xl font-bold text-slate-900">Painel de Qualidade</h1><p class="text-slate-500 mt-1">Analise os resultados dos testes em tempo real.</p></div>
+                </header>
+                <nav id="main-tabs" class="flex border-b border-slate-200 mb-8 overflow-x-auto">
+                    <button data-tab="dashboard" class="flex-shrink-0 py-3 px-5 font-semibold text-slate-500 border-b-2 border-transparent hover:border-slate-300 hover:text-slate-700 transition-all duration-200 tab-active"><i class="fas fa-chart-pie mr-2"></i>Análise de Qualidade</button>
+                    <button data-tab="history" class="flex-shrink-0 py-3 px-5 font-semibold text-slate-500 border-b-2 border-transparent hover:border-slate-300 hover:text-slate-700 transition-all duration-200"><i class="fas fa-history mr-2"></i>Histórico de Testes</button>
+                    <button data-tab="time-analysis" class="flex-shrink-0 py-3 px-5 font-semibold text-slate-500 border-b-2 border-transparent hover:border-slate-300 hover:text-slate-700 transition-all duration-200"><i class="fas fa-chart-line mr-2"></i>Análise Temporal</button>
+                    <button data-tab="device-details" class="flex-shrink-0 py-3 px-5 font-semibold text-slate-500 border-b-2 border-transparent hover:border-slate-300 hover:text-slate-700 transition-all duration-200 hidden"><i class="fas fa-microchip mr-2"></i>Detalhes de Dispositivos</button>
+                </nav>
+                <main id="painel-main-content">
+                    <div id="dashboard-content">
+                        <section id="analytics-overview-section">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                                <div><h2 class="text-xl font-bold text-slate-800">Visão Geral da Qualidade</h2><p class="text-slate-500 mt-1">Resultados e tendências dos testes registrados.</p></div>
+                                <button id="refresh-analytics" class="mt-3 sm:mt-0 text-sm bg-white border border-slate-300 text-slate-700 font-semibold px-4 py-2 rounded-lg hover:bg-slate-50 transition-all duration-200"><i class="fas fa-sync-alt mr-2"></i>Atualizar Dados</button>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-sm mb-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-semibold text-slate-800">Filtros de Análise</h3>
+                                    <button id="clearFiltersBtn" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"><i class="fas fa-eraser mr-1"></i>Limpar Filtros</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                                    <div><label for="modelFilter" class="block text-sm font-medium text-slate-700">Modelo:</label><select id="modelFilter" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"><option value="">Todos</option></select></div>
+                                    <div><label for="clientFilter" class="block text-sm font-medium text-slate-700">Cliente:</label><select id="clientFilter" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"><option value="">Todos</option></select></div>
+                                    <div><label for="dateRangePicker" class="block text-sm font-medium text-slate-700">Período:</label><input id="dateRangePicker" type="text" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 cursor-pointer" placeholder="Selecione um período"></div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm"><h3 class="font-semibold text-slate-800 mb-4 text-center">Resumo Geral de Status</h3><div class="chart-container"><canvas id="overallStatusChart"></canvas></div></div>
+                                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm"><h3 class="font-semibold text-slate-800 mb-4">Top Falhas por Componente</h3><div class="chart-container" style="max-width: none;"><canvas id="failuresByComponentChart"></canvas></div></div>
+                                <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm"><h3 class="font-semibold text-slate-800 mb-4">Testes por Modelo de Dispositivo</h3><div class="chart-container" style="max-width: 600px; height: 350px;"><canvas id="testsByModelChart"></canvas></div></div>
+                                <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm"><h3 class="font-semibold text-slate-800 mb-4">Testes por Cliente</h3><p class="text-slate-500 text-sm mb-4">Clique em uma barra para ver a análise detalhada por cliente.</p><div class="chart-container" style="max-width: none; height: 400px;"><canvas id="testsByClientChart"></canvas></div></div>
+                            </div>
+                        </section>
+                        <section id="client-detail-analytics-section" class="hidden bg-white p-6 sm:p-8 rounded-2xl shadow-sm">
+                            <h2 id="client-detail-title" class="text-xl font-bold text-slate-800 mb-2"></h2><p class="text-slate-500 mb-6">Análise detalhada para o cliente selecionado.</p>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                                <div class="bg-slate-50 p-6 rounded-xl shadow-inner"><h3 class="font-semibold text-slate-800 mb-4">Falhas por Componente (deste Cliente)</h3><div class="chart-container"><canvas id="clientFailuresByComponentChart"></canvas></div></div>
+                                <div class="bg-slate-50 p-6 rounded-xl shadow-inner"><h3 class="font-semibold text-slate-800 mb-4">Modelos Testados (deste Cliente)</h3><div class="chart-container"><canvas id="clientTestsByModelChart"></canvas></div></div>
+                            </div>
+                            <button id="backToOverviewBtn" class="bg-slate-200 text-slate-800 font-semibold px-6 py-3 rounded-lg hover:bg-slate-300 transition-all"><i class="fas fa-arrow-left mr-2"></i>Voltar à Visão Geral</button>
+                        </section>
+                    </div>
+                    <div id="history-content" class="hidden">
+                        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                                <div><h2 class="text-xl font-bold text-slate-800">Histórico de Testes</h2><p class="text-slate-500">Consulte, pesquise e gerencie todos os registros de testes.</p></div>
+                                <div class="relative mt-4 sm:mt-0"><input type="text" id="searchInput" placeholder="Buscar por cliente ou modelo..." class="w-full sm:w-64 pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i></div>
+                            </div>
+                            <div class="overflow-x-auto"><table class="min-w-full divide-y divide-slate-200"><thead class="bg-slate-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Data</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Modelo</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Cliente</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status Geral</th><th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th></tr></thead><tbody id="historyTableBody" class="bg-white divide-y divide-slate-200"></tbody></table><p id="no-results" class="text-center py-8 text-slate-500 hidden">Nenhum registro encontrado.</p></div>
+                        </div>
+                    </div>
+                    <div id="time-analysis-content" class="hidden">
+                        <section id="temporal-analytics-section" class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                                <div><h2 class="text-xl font-bold text-slate-800">Análise Temporal de Testes</h2><p class="text-slate-500">Visualize a tendência de testes realizados ao longo do tempo.</p></div>
+                                <div class="mt-4 sm:mt-0"><label for="timeAnalysisPeriod" class="sr-only">Período</label><select id="timeAnalysisPeriod" class="rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"><option value="7">Últimos 7 Dias</option><option value="30" selected>Últimos 30 Dias</option><option value="90">Últimos 90 Dias</option></select></div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                <div class="bg-slate-100 p-5 rounded-xl"><h4 class="text-sm font-medium text-slate-500">Total de Testes</h4><p id="kpi-total-tests" class="text-3xl font-bold text-slate-800 mt-1">0</p></div>
+                                <div class="bg-slate-100 p-5 rounded-xl"><h4 class="text-sm font-medium text-slate-500">Média Diária</h4><p id="kpi-avg-daily" class="text-3xl font-bold text-slate-800 mt-1">0.0</p></div>
+                                <div class="bg-green-100 border border-green-200 p-5 rounded-xl"><h4 class="text-sm font-medium text-green-700">Testes OK</h4><p id="kpi-ok-tests" class="text-3xl font-bold text-green-800 mt-1">0</p></div>
+                                <div class="bg-red-100 border border-red-200 p-5 rounded-xl"><h4 class="text-sm font-medium text-red-700">Testes com Falha</h4><p id="kpi-failed-tests" class="text-3xl font-bold text-red-800 mt-1">0</p></div>
+                            </div>
+                            <div class="bg-slate-50 p-6 rounded-xl shadow-inner"><h3 class="font-semibold text-slate-800 mb-4">Volume de Testes por Dia</h3><div class="chart-container" style="max-width: none; height: 400px;"><canvas id="testsOverTimeChart"></canvas></div></div>
+                        </section>
+                    </div>
+                    <div id="device-details-content" class="hidden">
+                        <section id="device-details-section" class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                                <div><h2 id="device-details-title" class="text-xl font-bold text-slate-800">Detalhes dos Dispositivos</h2><p id="device-details-subtitle" class="text-slate-500">Lista detalhada de dispositivos e status de seus componentes.</p></div>
+                                <button id="backToDashboardBtn" class="mt-3 sm:mt-0 bg-slate-200 text-slate-800 font-semibold px-6 py-3 rounded-lg hover:bg-slate-300 transition-all"><i class="fas fa-arrow-left mr-2"></i>Voltar ao Painel</button>
+                            </div>
+                            <div id="device-details-failure-chart-container" class="bg-slate-50 p-6 rounded-xl shadow-inner mb-8"><h3 class="font-semibold text-slate-800 mb-4">Falhas por Componente (nesta seleção)</h3><div class="chart-container" style="max-width: none; height: 350px;"><canvas id="deviceDetailsFailureChart"></canvas></div></div>
+                            <div id="device-details-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                        </section>
+                    </div>
+                </main>
+            </div>
+            <div id="loading-overlay" class="loading-overlay hidden"><div class="spinner"></div></div>
+            <div id="confirm-modal" class="modal">
+                <div class="modal-content">
+                    <div class="flex justify-center items-center w-12 h-12 rounded-full mx-auto mb-4" id="confirm-icon-container"><i class="fas text-2xl text-white" id="confirm-icon"></i></div>
+                    <h2 class="text-2xl font-bold text-center text-slate-800" id="confirm-title"></h2><p class="text-center text-slate-500 mt-2 mb-6" id="confirm-message"></p>
+                    <div class="flex justify-center gap-4"><button id="cancel-btn" class="w-full bg-slate-200 text-slate-800 font-semibold py-2.5 rounded-lg hover:bg-slate-300 transition-all">Cancelar</button><button id="confirm-btn" class="w-full text-white font-semibold py-2.5 rounded-lg transition-all">Confirmar</button></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTAINER DO REGISTRO DE TESTES (INICIALMENTE OCULTO) -->
+        <div id="recall-container" class="hidden flex-grow overflow-y-auto flex items-start justify-center p-4">
+            <div class="app">
+                <div class="tester-name-display" id="testerNameDisplay"><i class="fas fa-user-circle"></i> <span id="testerNameText"></span></div>
+                <h1><i class="fas fa-clipboard-list" style="margin-right:10px;"></i>Registro de Testes</h1>
+                <form id="dataForm">
+                    <div class="field"><label for="modelo">Modelo do Dispositivo</label><select id="modelo" name="modelo" required><option value="" disabled selected>Selecione o modelo</option><option value="HF801">HF801</option><option value="HF810">HF810</option><option value="HF900">HF900</option><option value="HF405">HF405</option><option value="HF918">HF918</option></select></div>
+                    <div class="field hidden" id="clienteField"><label for="cliente">Nome do Cliente</label><input type="text" id="cliente" name="cliente" placeholder="Ex: João Silva" required /></div>
+                    <fieldset class="hidden" id="componentesField"><legend>Status dos Componentes</legend><div class="components" id="components"></div></fieldset>
+                    <button type="submit" class="hidden" id="enviarBtn"><i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Enviar Teste</button>
+                </form>
+                <div id="status" aria-live="polite"></div>
+            </div>
+            <button class="feedback-btn" id="feedbackBtn" title="Enviar Feedback"> <i class="fas fa-bullhorn"></i> </button>
+            <div class="modal" id="confirmSendModal">
+                <div class="modal-content">
+                    <h2><i class="fas fa-question-circle" style="color: var(--primary-color); margin-right: 8px;"></i>Confirmar Envio?</h2><p>Revise os dados se necessário. Deseja prosseguir e enviar este registro de teste?</p>
+                    <div class="field"><label for="observacao">Observação Geral (opcional)</label><textarea id="observacao" placeholder="Adicione qualquer observação relevante para o teste geral aqui..."></textarea></div>
+                    <div class="modal-actions"><button type="button" class="cancel" id="cancelSend"><i class="fas fa-times" style="margin-right: 6px;"></i>Cancelar</button><button type="button" class="confirm" id="confirmSend"><i class="fas fa-check" style="margin-right: 6px;"></i>Confirmar</button></div>
+                </div>
+            </div>
+            <div class="modal" id="feedbackModal">
+                <div class="modal-content feedback">
+                    <h2><i class="fas fa-bullhorn" style="color: var(--accent-color); margin-right: 8px;"></i>Enviar Feedback</h2><p>Compartilhe suas sugestões, bugs ou melhorias.</p>
+                    <div class="field"><label for="feedbackType">Tipo de Feedback</label><select id="feedbackType"><option value="bug">Bug / Erro</option><option value="melhoria">Sugestão de Melhoria</option><option value="outros">Outros</option></select></div>
+                    <div class="field"><label for="feedbackDescription">Descrição</label><textarea id="feedbackDescription" placeholder="Descreva o feedback em detalhes..."></textarea></div>
+                    <div id="feedbackStatus" class="records-status" aria-live="polite"></div>
+                    <div class="modal-actions"><button type="button" class="cancel" id="cancelFeedback"><i class="fas fa-times" style="margin-right: 6px;"></i>Cancelar</button><button type="button" class="submit-feedback-btn" id="submitFeedbackBtn"><i class="fas fa-paper-plane" style="margin-right: 6px;"></i>Enviar</button></div>
+                </div>
+            </div>
+             <div class="login-screen" id="loginScreen">
+                <div class="login-container">
+                    <h1><i class="fas fa-user-check" style="margin-right: 10px;"></i>Identificação</h1>
+                    <div class="field"><input type="text" id="testerName" placeholder="Digite seu nome" required autofocus /></div>
+                    <div class="field color-picker-field"><div class="color-options" id="colorOptionsContainer"></div></div>
+                    <button type="button" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Iniciar Testes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTAINER DA ÁREA DE PRODUÇÃO (INICIALMENTE OCULTO) -->
+        <div id="producao-container" class="hidden flex-grow overflow-y-auto flex items-start justify-center p-4">
+            <div class="app">
+                <h1><i class="fas fa-industry" style="margin-right:10px;"></i>Área de Produção</h1>
+                <div id="producao-main-categories" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Categorias principais de produção serão injetadas aqui via JS -->
+                </div>
+                <div id="producao-sub-categories" class="hidden mt-8 p-6 bg-slate-50 rounded-lg shadow-inner">
+                    <!-- Sub-categorias (especialmente Iluminação) serão injetadas aqui via JS -->
+                    <h2 id="sub-category-title" class="text-xl font-bold text-slate-800 mb-4"></h2>
+                    <div id="sub-category-content" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Conteúdo das sub-categorias -->
+                    </div>
+                    <button id="backToMainProdBtn" class="mt-6 bg-slate-200 text-slate-800 font-semibold px-6 py-3 rounded-lg hover:bg-slate-300 transition-all"><i class="fas fa-arrow-left mr-2"></i>Voltar às Categorias Principais</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Detalhes da Produção (Novo) -->
+        <div id="detailModal" class="modal">
+            <div class="modal-content">
+                <h2 id="detailModalTitle" class="text-2xl font-bold text-center text-slate-800 mb-4"></h2>
+                <p id="detailModalContent" class="text-center text-slate-500 mb-6"></p>
+                <div class="modal-actions">
+                    <button id="closeDetailModalBtn" class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition-all">Fechar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="helpModal" class="modal">
+            <div class="modal-content overflow-y-auto max-h-[80vh]">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-slate-800"><i class="fas fa-question-circle text-green-500 mr-3"></i>Guia Rápido</h2>
+                    <button id="closeHelpBtn" class="text-2xl text-slate-400 hover:text-slate-600 transition-colors">&times;</button>
+                </div>
+                <div>
+                    <h3><i class="fas fa-chart-pie text-blue-500 mr-2"></i>Como usar o Painel de Análise</h3>
+                    <ul>
+                        <li><strong>Filtros:</strong> Use os menus de "Modelo", "Cliente" e o seletor de "Período" para refinar os dados exibidos em todos os gráficos.</li>
+                        <li><strong>Navegação por Abas:</strong> Alterne entre "Análise de Qualidade", "Histórico" e "Análise Temporal" para diferentes visualizações dos dados.</li>
+                        <li><strong>Gráficos Interativos:</strong> Clique nas barras ou seções dos gráficos (como no gráfico de "Testes por Cliente") para ver detalhes específicos.</li>
+                        <li><strong>Atualizar Dados:</strong> O botão <i class="fas fa-sync-alt"></i> no canto superior direito busca os dados mais recentes da planilha.</li>
+                    </ul>
+
+                    <h3><i class="fas fa-clipboard-list text-amber-500 mr-2"></i>Como usar o Registro de Testes</h3>
+                    <ul>
+                        <li><strong>Identificação:</strong> A primeira tela é para identificar o testador. Seu nome será salvo junto com cada teste.</li>
+                        <li><strong>Seleção Inicial:</strong> Comece selecionando o "Modelo do Dispositivo" e preenchendo o "Nome do Cliente".</li>
+                        <li><strong>Status dos Componentes:</strong> Clique em cada componente para mudar seu status. O ciclo é: N/A (Cinza) &rarr; OK (Verde) &rarr; FALHA (Vermelho).</li>
+                        <li><strong>Detalhe da Falha:</strong> Se um componente estiver com "FALHA", uma caixa de texto aparecerá para você detalhar o problema.</li>
+                        <li><strong>Envio:</strong> Após marcar todos os componentes, o botão "Enviar Teste" ficará disponível. Clique para salvar o registro.</li>
+                    </ul>
+                </div>
+                <div class="modal-actions mt-4">
+                     <button id="closeHelpBtn2" class="w-full bg-slate-200 text-slate-800 font-semibold py-2.5 rounded-lg hover:bg-slate-300 transition-all">Entendido</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- LÓGICA DO SPLASH SCREEN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const splashScreen = document.getElementById('splash-screen');
+            const mainContent = document.querySelector('body'); // Ajuste para o body para exibir todo o conteúdo após o splash
+
+            setTimeout(() => {
+                splashScreen.classList.add('fade-out');
+                // Remove o overflow hidden do body após o splash screen
+                mainContent.style.overflow = 'auto'; 
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 700); // Tempo igual à transição de opacidade
+            }, 2000); // 2 segundos antes de começar a desaparecer
+        });
+
+        // --- LÓGICA DE CONTROLE PRINCIPAL ---
+        let isPainelInitialized = false;
+        let isRecallInitialized = false;
+        let isProducaoInitialized = false; // Flag de inicialização da Produção
+        let painelUpdateFunction = () => {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuContainer = document.getElementById('menu-container');
+            const painelContainer = document.getElementById('painel-container');
+            const recallContainer = document.getElementById('recall-container');
+            const producaoContainer = document.getElementById('producao-container'); 
+            const homeButton = document.getElementById('homeButton');
+
+            const openPainelBtn = document.getElementById('open-painel');
+            const openRecallBtn = document.getElementById('open-recall');
+            const openProducaoBtn = document.getElementById('open-producao'); 
+            const openHelpBtn = document.getElementById('open-help');
+
+            const helpModal = document.getElementById('helpModal');
+            const closeHelpBtn = document.getElementById('closeHelpBtn');
+            const closeHelpBtn2 = document.getElementById('closeHelpBtn2');
+
+            const showApp = (appName) => {
+                menuContainer.classList.add('hidden');
+                homeButton.classList.remove('hidden');
+
+                // Oculta todos os containers de aplicativo primeiro
+                painelContainer.classList.add('hidden');
+                recallContainer.classList.add('hidden');
+                producaoContainer.classList.add('hidden'); 
+
+                if (appName === 'painel') {
+                    painelContainer.classList.remove('hidden');
+                    if (!isPainelInitialized) {
+                        painelUpdateFunction = initPainelApp();
+                        isPainelInitialized = true;
+                    } else {
+                        painelUpdateFunction();
+                    }
+                } else if (appName === 'recall') {
+                    recallContainer.classList.remove('hidden');
+                    if (!isRecallInitialized) {
+                        initRecallApp();
+                        isRecallInitialized = true;
+                    }
+                } else if (appName === 'producao') { 
+                    producaoContainer.classList.remove('hidden');
+                    if (!isProducaoInitialized) {
+                        initProducaoApp();
+                        isProducaoInitialized = true;
+                    }
+                }
+            };
+            
+            const showMenu = () => {
+                homeButton.classList.add('hidden');
+                painelContainer.classList.add('hidden');
+                recallContainer.classList.add('hidden');
+                producaoContainer.classList.add('hidden'); 
+                menuContainer.classList.remove('hidden');
+            };
+
+            const showHelpModal = () => { helpModal.classList.add('visible'); };
+            const hideHelpModal = () => { helpModal.classList.remove('visible'); };
+
+            openPainelBtn.addEventListener('click', () => showApp('painel'));
+            openRecallBtn.addEventListener('click', () => showApp('recall'));
+            openProducaoBtn.addEventListener('click', () => showApp('producao')); 
+            homeButton.addEventListener('click', showMenu);
+            
+            openHelpBtn.addEventListener('click', showHelpModal);
+            closeHelpBtn.addEventListener('click', hideHelpModal);
+            closeHelpBtn2.addEventListener('click', hideHelpModal);
+            helpModal.addEventListener('click', (event) => { if (event.target === helpModal) { hideHelpModal(); } });
+
+        });
+
+        // --- SCRIPT DO PAINEL DE ANÁLISE ---
+        function initPainelApp() {
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyE4h4LL3vk8n0m2A0C3p3n6Plz9w9YV0Ip_N8CpBpIk9VRKQmSkIWmzDL05XgdVKmlmw/exec';
+            const STATUS_NA = 'N/A';
+            const STATUS_OK = 'OK';
+            const STATUS_FALHA = 'FALHA';
+
+            const allComponents = [
+                { id: 'aht10', label: 'AHT10' }, { id: 'botao_esquerdo', label: 'Botão Esquerdo' },
+                { id: 'botao_central', label: 'Botão Central' }, { id: 'botao_direito', label: 'Botão Direito' },
+                { id: 'botao_reset', label: 'Botão Reset' }, { id: 'certificado', label: 'Certificado' },
+                { id: 'conector_mola', label: 'Conector Mola' }, { id: 'esp32', label: 'ESP32' },
+                { id: 'display', label: 'Display' }, { id: 'led_azul', label: 'LED Azul' },
+                { id: 'ledrgb', label: 'LED RGB' }, { id: 'ldr', label: 'LDR' },
+                { id: 'ntc', label: 'NTC' }, { id: 'relay', label: 'Relay' },
+                { id: 'tm1637', label: 'TM1637' }, { id: 'watchdog', label: 'Watchdog' },
+                { id: 'serigrafia', label: 'Serigrafia' }
+            ];
+            
+            let allRecords = []; 
+            let charts = {};
+            let currentActiveTab = 'dashboard'; 
+            let datePicker;
+
+            const painelAppContainer = document.getElementById('painel-container');
+            const modelFilterSelect = painelAppContainer.querySelector('#modelFilter');
+            const clientFilterSelect = painelAppContainer.querySelector('#clientFilter');
+            const clearFiltersBtn = painelAppContainer.querySelector('#clearFiltersBtn');
+            const loadingOverlay = painelAppContainer.querySelector('#loading-overlay');
+            const searchInput = painelAppContainer.querySelector('#searchInput');
+            const backToDashboardBtn = painelAppContainer.querySelector('#backToDashboardBtn');
+            const timeAnalysisPeriodSelect = painelAppContainer.querySelector('#timeAnalysisPeriod');
+
+            Chart.register(ChartDataLabels);
+
+            const applyFilters = () => {
+                const selectedModel = modelFilterSelect.value;
+                const selectedClient = clientFilterSelect.value;
+                const startDate = datePicker?.getStartDate()?.dateInstance;
+                const endDate = datePicker?.getEndDate()?.dateInstance;
+                
+                const filteredRecords = allRecords.filter(record => {
+                    const matchesModel = !selectedModel || record.modelo === selectedModel;
+                    const matchesClient = !selectedClient || record.cliente === selectedClient;
+                    let matchesDate = true;
+                    if (startDate && endDate) {
+                        const recordDate = new Date(record.data);
+                        const start = new Date(startDate);
+                        const end = new Date(endDate);
+                        start.setHours(0, 0, 0, 0);
+                        end.setHours(23, 59, 59, 999);
+                        matchesDate = recordDate >= start && recordDate <= end;
+                    }
+                    return matchesModel && matchesClient && matchesDate;
+                });
+                if (currentActiveTab === 'dashboard') { renderAnalytics(filteredRecords); }
+            };
+
+            const setupEventListeners = () => {
+                modelFilterSelect.addEventListener('change', applyFilters);
+                clientFilterSelect.addEventListener('change', applyFilters);
+                clearFiltersBtn.addEventListener('click', clearAllFilters);
+                painelAppContainer.querySelector('#refresh-analytics').addEventListener('click', fetchAndDisplayHistory);
+                if (timeAnalysisPeriodSelect) {
+                    timeAnalysisPeriodSelect.addEventListener('change', () => renderTemporalAnalyticsPage(allRecords));
+                }
+                if (backToDashboardBtn) {
+                    backToDashboardBtn.addEventListener('click', () => {
+                        switchTab('dashboard');
+                    });
+                }
+                if(searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const searchTerm = e.target.value.toLowerCase();
+                        const filteredRecords = allRecords.filter(rec => {
+                            return `${rec.cliente || ''} ${rec.modelo || ''}`.toLowerCase().includes(searchTerm);
+                        });
+                        renderHistoryTable(filteredRecords);
+                    });
+                }
+            };
+
+            const setupDateFilters = () => {
+                const datePickerEl = painelAppContainer.querySelector('#dateRangePicker');
+                if (!datePickerEl) return;
+
+                datePicker = new Litepicker({
+                    element: datePickerEl, singleMode: false, autoApply: true, plugins: ['ranges'],
+                    format: 'DD/MM/YYYY', separator: ' - ', lang: 'pt-BR',
+                    buttonText: { previousMonth: `<i class="fas fa-chevron-left"></i>`, nextMonth: `<i class="fas fa-chevron-right"></i>`, reset: 'Limpar', apply: 'Aplicar', },
+                    i18n: { 'pt-BR': { weekdays: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'], months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'], ranges: 'Períodos', } },
+                    ranges: { 'Últimos 7 dias': [new Date(new Date().setDate(new Date().getDate() - 6)), new Date()], 'Últimos 30 dias': [new Date(new Date().setDate(new Date().getDate() - 29)), new Date()], 'Este Mês': [new Date(new Date().getFullYear(), new Date().getMonth(), 1), new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)], 'Mês Passado': [new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1), new Date(new Date().getFullYear(), new Date().getMonth(), 0)], },
+                    setup: (picker) => { picker.on('selected', () => { applyFilters(); }); }
+                });
+            };
+
+            const clearAllFilters = () => {
+                modelFilterSelect.value = "";
+                clientFilterSelect.value = "";
+                if (datePicker) { datePicker.clearSelection(); }
+                applyFilters();
+            };
+            
+            const switchTab = (tabName) => {
+                const tabs = painelAppContainer.querySelectorAll('#main-tabs button');
+                const contents = { dashboard: painelAppContainer.querySelector('#dashboard-content'), history: painelAppContainer.querySelector('#history-content'), 'time-analysis': painelAppContainer.querySelector('#time-analysis-content'), 'device-details': painelAppContainer.querySelector('#device-details-content'), };
+                tabs.forEach(t => t.classList.remove('tab-active'));
+                const tabToActivate = painelAppContainer.querySelector(`[data-tab="${tabName}"]`);
+                if(tabToActivate) { tabToActivate.classList.add('tab-active'); if (tabName !== 'device-details') { painelAppContainer.querySelector('[data-tab="device-details"]').classList.add('hidden'); } }
+                currentActiveTab = tabName;
+                Object.values(contents).forEach(content => { if (content) content.classList.add('hidden'); });
+                if (contents[tabName]) { contents[tabName].classList.remove('hidden'); }
+            };
+
+            const setupTabs = () => {
+                const tabs = painelAppContainer.querySelectorAll('#main-tabs button');
+                tabs.forEach(tab => {
+                    if(tab.dataset.tab !== 'device-details') {
+                        tab.addEventListener('click', () => {
+                            const tabName = tab.dataset.tab;
+                            switchTab(tabName);
+                            if (tabName === 'dashboard') { painelAppContainer.querySelector('#analytics-overview-section').classList.remove('hidden'); const clientDetail = painelAppContainer.querySelector('#client-detail-analytics-section'); if (clientDetail) clientDetail.classList.add('hidden'); applyFilters(); } 
+                            else if (tabName === 'history') { renderHistoryTable(allRecords); } 
+                            else if (tabName === 'time-analysis') { renderTemporalAnalyticsPage(allRecords); }
+                        });
+                    }
+                });
+            };
+            const showLoading = () => loadingOverlay.classList.remove('hidden');
+            const hideLoading = () => loadingOverlay.classList.add('hidden');
+
+            const fetchAndDisplayHistory = async () => {
+                showLoading();
+                try {
+                    const response = await fetch(`${SCRIPT_URL}?v=${new Date().getTime()}`);
+                    if (!response.ok) throw new Error('Network response was not ok.');
+                    allRecords = await response.json();
+                    allRecords.sort((a, b) => new Date(b.data) - new Date(a.data));
+                    populateFilterOptions(allRecords); 
+                    if (datePicker && !datePicker.getStartDate()) {
+                        const end = new Date(); const start = new Date(); start.setDate(end.getDate() - 29); datePicker.setDateRange(start, end, true);
+                    }
+                    applyFilters();
+                } catch (error) { console.error('Erro ao buscar dados:', error); const historyBody = painelAppContainer.querySelector('#historyTableBody'); if(historyBody) historyBody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-500">Falha ao carregar dados: ${error.message}</td></tr>`;
+                } finally { hideLoading(); }
+            };
+            const populateFilterOptions = (records) => {
+                const models = new Set(records.map(r => r.modelo).filter(Boolean));
+                const clients = new Set(records.map(r => r.cliente).filter(Boolean));
+                modelFilterSelect.innerHTML = '<option value="">Todos</option>' + [...models].sort().map(m => `<option value="${m}">${m}</option>`).join('');
+                clientFilterSelect.innerHTML = '<option value="">Todos</option>' + [...clients].sort().map(c => `<option value="${c}">${c}</option>`).join('');
+            };
+            const renderAnalytics = (records) => {
+                renderOverallStatusChart(records);
+                renderFailuresByComponentChart(records);
+                renderTestsByModelChart(records); 
+                renderTestsByClientChart(records);
+            };
+            const createOrUpdateChart = (chartId, config) => {
+                const ctx = painelAppContainer.querySelector(`#${chartId}`)?.getContext('2d');
+                if (!ctx) return;
+                if (charts[chartId]) charts[chartId].destroy();
+                charts[chartId] = new Chart(ctx, config);
+            };
+            const getDeviceStatus = (record) => {
+                let hasFailure = false, hasTests = false;
+                allComponents.forEach(comp => { if (record.hasOwnProperty(comp.id) && record[comp.id] !== STATUS_NA) { hasTests = true; if (String(record[comp.id]).startsWith(STATUS_FALHA)) hasFailure = true; } });
+                if (!hasTests) return STATUS_NA; return hasFailure ? STATUS_FALHA : STATUS_OK;
+            };
+            const renderOverallStatusChart = (records) => {
+                const relevantRecords = records.filter(rec => getDeviceStatus(rec) !== STATUS_NA);
+                let goodDevices = relevantRecords.filter(rec => getDeviceStatus(rec) === STATUS_OK).length;
+                let badDevices = relevantRecords.filter(rec => getDeviceStatus(rec) === STATUS_FALHA).length;
+                createOrUpdateChart('overallStatusChart', { type: 'doughnut', data: { labels: ['Dispositivos OK', 'Dispositivos com Falha'], datasets: [{ data: [goodDevices, badDevices], backgroundColor: ['#14b8a6', '#f43f5e'], borderColor: '#fff', borderWidth: 6, hoverOffset: 25, hoverBorderColor: '#fff', hoverBorderWidth: 2, }] }, options: { responsive: true, maintainAspectRatio: false, animation: { animateScale: true, animateRotate: true }, cutout: '45%', plugins: { legend: { position: 'bottom', labels: { padding: 25, font: { size: 14 } } }, datalabels: { color: '#fff', formatter: (value, context) => { if (value === 0) return ''; const total = context.chart.data.datasets[0].data.reduce((s, v) => s + v, 0); const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%'; return `${value}\n(${percentage})`; }, font: { weight: 'bold', size: 14 }, textAlign: 'center' } }, onClick: (e, elements) => { if (elements.length > 0) { const index = elements[0].index; showDeviceStatusDetails(index === 0 ? STATUS_OK : STATUS_FALHA, relevantRecords); } } } });
+            };
+            const showDeviceStatusDetails = (statusType, recordsToShow) => {
+                const filteredDevices = recordsToShow.filter(rec => getDeviceStatus(rec) === statusType);
+                const statusText = statusType === STATUS_OK ? 'OK' : 'com Falha';
+                const deviceDetailsTitle = painelAppContainer.querySelector('#device-details-title');
+                const deviceDetailsList = painelAppContainer.querySelector('#device-details-list');
+                const deviceDetailsFailureChartContainer = painelAppContainer.querySelector('#device-details-failure-chart-container');
+                if (!deviceDetailsTitle) return;
+                deviceDetailsTitle.textContent = `Dispositivos ${statusText}`;
+                painelAppContainer.querySelector('#device-details-subtitle').textContent = `${filteredDevices.length} dispositivo(s) encontrado(s).`;
+                deviceDetailsList.innerHTML = '';
+                if (statusType === STATUS_OK) { deviceDetailsFailureChartContainer.classList.add('hidden'); } else { deviceDetailsFailureChartContainer.classList.remove('hidden'); renderDeviceDetailsFailureChart(filteredDevices); }
+                if (filteredDevices.length === 0) { deviceDetailsList.innerHTML = '<p class="text-slate-500 col-span-full text-center">Nenhum dispositivo encontrado.</p>'; } else { filteredDevices.forEach(device => { let componentListHtml = ''; allComponents.forEach(comp => { if (device.hasOwnProperty(comp.id)) { const status = String(device[comp.id]); let statusColorClass = 'text-slate-500'; if (status.startsWith(STATUS_OK)) statusColorClass = 'text-green-600'; else if (status.startsWith(STATUS_FALHA)) statusColorClass = 'text-red-600'; componentListHtml += `<li class="flex justify-between items-center text-sm"><span>${comp.label}:</span><span class="font-semibold ${statusColorClass}">${status}</span></li>`; } }); const card = document.createElement('div'); card.className = 'bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200'; card.innerHTML = `<h4 class="font-bold text-slate-800">${device.modelo || 'N/A'}</h4><p class="text-sm text-slate-500 mb-3">Cliente: ${device.cliente || 'N/A'}</p><ul class="space-y-1">${componentListHtml}</ul>`; deviceDetailsList.appendChild(card); }); }
+                switchTab('device-details');
+            };
+            const renderDeviceDetailsFailureChart = (records) => {
+                const failureCounts = {}; allComponents.forEach(c => failureCounts[c.label] = 0);
+                records.forEach(rec => { allComponents.forEach(comp => { if(String(rec[comp.id]).startsWith(STATUS_FALHA)) failureCounts[comp.label]++; }); });
+                const sortedFailures = Object.entries(failureCounts).filter(([,count]) => count > 0).sort(([,a],[,b]) => b-a);
+                createOrUpdateChart('deviceDetailsFailureChart', { type: 'bar', data: { labels: sortedFailures.map(f => f[0]), datasets: [{ label: 'Nº de Falhas', data: sortedFailures.map(f => f[1]), backgroundColor: '#f43f5e', borderRadius: 6, }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'center', align: 'center', color: '#ffffff', font: { weight: 'bold' }, formatter: (v) => v > 0 ? v : '' } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { grid: { display: false } } } } });
+            };
+            const renderFailuresByComponentChart = (records) => {
+                const failureCounts = {}; allComponents.forEach(c => failureCounts[c.label] = 0);
+                records.forEach(rec => { allComponents.forEach(comp => { if(String(rec[comp.id]).startsWith(STATUS_FALHA)) failureCounts[comp.label]++; }); });
+                const sortedFailures = Object.entries(failureCounts).filter(([,count]) => count > 0).sort(([,a],[,b]) => b-a).slice(0, 7);
+                createOrUpdateChart('failuresByComponentChart', { type: 'bar', data: { labels: sortedFailures.map(f => f[0]), datasets: [{ label: 'Nº de Falhas', data: sortedFailures.map(f => f[1]), backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'].slice(0, sortedFailures.length), borderRadius: 6, borderColor: '#fff', borderWidth: 2 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `Falhas: ${c.parsed.x}` } }, datalabels: { anchor: 'center', align: 'center', color: '#fff', formatter: (v) => v > 0 ? v : '', font: { weight: 'bold' } } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } , grid: { color: 'rgba(209, 213, 219, 0.3)' } }, y: { grid: { display: false } } } } });
+            };
+            const renderTestsByModelChart = (records) => {
+                const modelCounts = {}; records.forEach(rec => { if (rec.modelo) modelCounts[rec.modelo] = (modelCounts[rec.modelo] || 0) + 1; });
+                const sortedModels = Object.entries(modelCounts).sort(([,a],[,b]) => b-a);
+                createOrUpdateChart('testsByModelChart', { type: 'bar', data: { labels: sortedModels.map(m => m[0]), datasets: [{ label: 'Nº de Testes', data: sortedModels.map(m => m[1]), backgroundColor: ['#88D8B0', '#FFCC66', '#FF6B6B', '#C7D0D8', '#6A8EAE', '#E9C46A', '#F4A261', '#E76F51', '#2A9D8F', '#264653'].slice(0, sortedModels.length), borderRadius: 6, borderColor: '#fff', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, datalabels: { anchor: 'center', align: 'center', color: '#ffffff', font: { weight: 'bold' }, formatter: (value) => value > 0 ? value : '' } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(209, 213, 219, 0.3)' } } } } });
+            };
+            const renderTestsByClientChart = (records) => {
+                const clientCounts = {}; records.forEach(rec => { const clientName = rec.cliente || 'Cliente Desconhecido'; clientCounts[clientName] = (clientCounts[clientName] || 0) + 1; });
+                const sortedClients = Object.entries(clientCounts).sort(([,a],[,b]) => b-a).slice(0, 10);
+                createOrUpdateChart('testsByClientChart', { type: 'bar', data: { labels: sortedClients.map(c => c[0]), datasets: [{ label: 'Nº de Testes', data: sortedClients.map(c => c[1]), backgroundColor: ['#3B82F6', '#2563EB', '#1D4ED8', '#1E3A8A', '#172554', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE', '#EFF6FF'].slice(0, sortedClients.length), borderRadius: 4, borderColor: '#fff', borderWidth: 2 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `Testes: ${c.parsed.x}` } }, datalabels: { anchor: 'center', align: 'center', color: '#fff', formatter: (v) => v > 0 ? v : '', font: { weight: 'bold' } } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(209, 213, 219, 0.3)' } }, y: { grid: { display: false } } }, onClick: (e, elements) => { if (elements.length > 0) { const clientName = charts['testsByClientChart'].data.labels[elements[0].index]; showClientAnalysis(clientName); } } } });
+            };
+            const showClientAnalysis = (clientName) => {
+                const overview = painelAppContainer.querySelector('#analytics-overview-section'); const detail = painelAppContainer.querySelector('#client-detail-analytics-section'); const detailTitle = painelAppContainer.querySelector('#client-detail-title'); if (!overview || !detail || !detailTitle) return;
+                detailTitle.textContent = `Análise Detalhada para: ${clientName}`; overview.classList.add('hidden'); detail.classList.remove('hidden');
+                const clientRecords = allRecords.filter(record => record.cliente === clientName);
+                let filteredClientRecords = clientRecords;
+                if (datePicker && datePicker.getStartDate() && datePicker.getEndDate()) {
+                    const startDate = datePicker.getStartDate().dateInstance; const endDate = datePicker.getEndDate().dateInstance;
+                    filteredClientRecords = clientRecords.filter(record => { const recordDate = new Date(record.data); const start = new Date(startDate); const end = new Date(endDate); start.setHours(0, 0, 0, 0); end.setHours(23, 59, 59, 999); return recordDate >= start && recordDate <= end; });
+                }
+                renderClientFailuresByComponentChart(filteredClientRecords); renderClientTestsByModelChart(filteredClientRecords);
+                painelAppContainer.querySelector('#backToOverviewBtn').onclick = () => { detail.classList.add('hidden'); overview.classList.remove('hidden'); };
+            };
+            const renderClientFailuresByComponentChart = (records) => {
+                const failureCounts = {}; allComponents.forEach(c => failureCounts[c.label] = 0);
+                records.forEach(rec => { allComponents.forEach(comp => { if(String(rec[comp.id]).startsWith(STATUS_FALHA)) failureCounts[comp.label]++; }); });
+                const sortedFailures = Object.entries(failureCounts).filter(([,count]) => count > 0).sort(([,a],[,b]) => b-a);
+                createOrUpdateChart('clientFailuresByComponentChart', { type: 'bar', data: { labels: sortedFailures.map(f => f[0]), datasets: [{ label: `Nº de Falhas`, data: sortedFailures.map(f => f[1]), backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'].slice(0, sortedFailures.length), borderRadius: 4, borderColor: '#fff', borderWidth: 2 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', color: '#4B5563', formatter: (v) => v > 0 ? v : '', font: { weight: 'bold' } } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(209, 213, 219, 0.3)' } }, y: { grid: { display: false } } } } });
+            };
+            const renderClientTestsByModelChart = (records) => {
+                const modelCounts = {}; records.forEach(rec => { if(rec.modelo) modelCounts[rec.modelo] = (modelCounts[rec.modelo] || 0) + 1; });
+                const labels = Object.keys(modelCounts).filter(model => modelCounts[model] > 0); const data = Object.values(modelCounts).filter(count => count > 0);
+                createOrUpdateChart('clientTestsByModelChart', { type: 'bar', data: { labels: labels, datasets: [{ label: `Testes`, data: data, backgroundColor: ['#4299e1', '#667eea', '#805ad5', '#d53f8c', '#dd6b20', '#ed8936', '#f6ad55', '#ecc94b', '#a0aec0', '#718096'].slice(0, labels.length), borderColor: '#fff', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'end', color: '#4B5563', formatter: (v) => v > 0 ? v : '', font: { weight: 'bold' } } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(209, 213, 219, 0.3)' } }, x: { grid: { display: false } } } } });
+            };
+            const renderHistoryTable = (records) => {
+                const tableBody = painelAppContainer.querySelector('#historyTableBody'); const noResults = painelAppContainer.querySelector('#no-results'); if (!tableBody || !noResults) return; tableBody.innerHTML = '';
+                if (records.length === 0) { noResults.classList.remove('hidden'); return; } noResults.classList.add('hidden');
+                records.forEach(rec => { let failures = 0; Object.keys(rec).forEach(key => { if(allComponents.some(c => c.id === key) && String(rec[key]).startsWith(STATUS_FALHA)) failures++; }); const statusBadge = failures > 0 ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">${failures} Falha(s)</span>` : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Aprovado</span>`; const row = document.createElement('tr'); row.innerHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${new Date(rec.data).toLocaleString('pt-BR')}</td><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${rec.modelo || 'N/A'}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${rec.cliente || 'N/A'}</td><td class="px-6 py-4 whitespace-nowrap text-sm">${statusBadge}</td><td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button data-record-date="${rec.data}" class="delete-btn text-red-600 hover:text-red-900"><i class="fas fa-trash-alt"></i></button></td>`; tableBody.appendChild(row); });
+                painelAppContainer.querySelectorAll('.delete-btn').forEach(btn => { btn.addEventListener('click', (e) => { const recordDate = e.currentTarget.dataset.recordDate; showConfirmationModal({ title: 'Apagar Registo?', message: 'Esta ação é irreversível. Deseja apagar este registo permanentemente?', icon: 'fas fa-exclamation-triangle', iconContainerBg: 'bg-red-500', confirmText: 'Sim, Apagar', confirmBg: 'bg-red-600', confirmHoverBg: 'hover:bg-red-700', callback: () => deleteRecord(recordDate) }); }); });
+            };
+            const deleteRecord = async (recordDate) => {
+                showLoading();
+                try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'delete', data: recordDate }) }); fetchAndDisplayHistory();
+                } catch (error) { showConfirmationModal({ title: 'Erro ao Apagar', message: 'Não foi possível apagar o registo. Tente novamente.', icon: 'fas fa-times-circle', iconContainerBg: 'bg-red-500', confirmText: 'OK', showCancel: false }); } finally { hideLoading(); }
+            };
+            const showConfirmationModal = (config) => {
+                const confirmModal = painelAppContainer.querySelector('#confirm-modal');
+                confirmModal.classList.add('visible');
+                confirmModal.querySelector('#confirm-title').textContent = config.title; confirmModal.querySelector('#confirm-message').textContent = config.message; confirmModal.querySelector('#confirm-icon').className = `fas ${config.icon} text-2xl text-white`; confirmModal.querySelector('#confirm-icon-container').className = `flex justify-center items-center w-12 h-12 rounded-full mx-auto mb-4 ${config.iconContainerBg}`; const confirmBtn = confirmModal.querySelector('#confirm-btn'); confirmBtn.textContent = config.confirmText; confirmBtn.className = `w-full text-white font-semibold py-2.5 rounded-lg transition-all ${config.confirmBg || 'bg-blue-600'} ${config.confirmHoverBg || 'hover:bg-blue-700'}`; const cancelBtn = confirmModal.querySelector('#cancel-btn'); cancelBtn.style.display = config.showCancel === false ? 'none' : 'block';
+                const confirmHandler = () => { confirmModal.classList.remove('visible'); if(config.callback) config.callback(); confirmBtn.removeEventListener('click', confirmHandler); cancelBtn.removeEventListener('click', cancelHandler); };
+                const cancelHandler = () => { confirmModal.classList.remove('visible'); confirmBtn.removeEventListener('click', cancelHandler); };
+                confirmBtn.addEventListener('click', confirmHandler); cancelBtn.addEventListener('click', cancelHandler);
+            };
+            const renderTemporalAnalyticsPage = (records) => {
+                const periodDays = parseInt(timeAnalysisPeriodSelect.value, 10);
+                const endDate = new Date(); const startDate = new Date(); startDate.setDate(endDate.getDate() - (periodDays -1)); startDate.setHours(0,0,0,0);
+                const periodRecords = records.filter(r => { const recordDate = new Date(r.data); return recordDate >= startDate && recordDate <= endDate; });
+                const totalTests = periodRecords.length; const avgDaily = (totalTests / periodDays).toFixed(1); const okTests = periodRecords.filter(r => getDeviceStatus(r) === STATUS_OK).length; const failedTests = totalTests - okTests;
+                painelAppContainer.querySelector('#kpi-total-tests').textContent = totalTests; painelAppContainer.querySelector('#kpi-avg-daily').textContent = avgDaily; painelAppContainer.querySelector('#kpi-ok-tests').textContent = okTests; painelAppContainer.querySelector('#kpi-failed-tests').textContent = failedTests;
+                const dailyCounts = {}; for (let i = 0; i < periodDays; i++) { const d = new Date(startDate); d.setDate(startDate.getDate() + i); dailyCounts[d.toISOString().slice(0, 10)] = 0; }
+                periodRecords.forEach(rec => { const dateKey = new Date(rec.data).toISOString().slice(0, 10); if (dailyCounts.hasOwnProperty(dateKey)) { dailyCounts[dateKey]++; } });
+                const labels = Object.keys(dailyCounts).map(d => `${d.slice(8,10)}/${d.slice(5,7)}`); const data = Object.values(dailyCounts);
+                renderTestsOverTimeChart(labels, data);
+            };
+            const renderTestsOverTimeChart = (labels, data) => {
+                createOrUpdateChart('testsOverTimeChart', { type: 'line', data: { labels: labels, datasets: [{ label: 'Nº de Testes', data: data, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#3b82f6', pointRadius: 4, pointHoverRadius: 6, }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(209, 213, 219, 0.3)' } }, x: { grid: { display: false } } } } });
+            };
+            
+            // Inicializa a aplicação do painel
+            setupTabs(); 
+            setupDateFilters(); 
+            setupEventListeners(); 
+            fetchAndDisplayHistory();
+            
+            return applyFilters;
+        }
+
+        // --- SCRIPT DO REGISTRO DE TESTES ---
+        function initRecallApp() {
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyE4h4LL3vk8n0m2A0C3p3n6Plz9w9YV0Ip_N8CpBpIk9VRKQmSkIWmzDL05XgdVKmlmw/exec';
+            const componentes = [ { id: 'aht10', label: 'AHT10' }, { id: 'botao_esquerdo', label: 'Botão Esquerdo' }, { id: 'botao_central', label: 'Botão Central' }, { id: 'botao_direito', label: 'Botão Direito' }, { id: 'botao_reset', label: 'Botão Reset' }, { id: 'certificado', label: 'Certificado' }, { id: 'conector_mola', label: 'Conector Mola' }, { id: 'esp32', label: 'ESP32' }, { id: 'display', label: 'Display' }, { id: 'led_azul', label: 'LED Azul' }, { id: 'ledrgb', label: 'LED RGB' }, { id: 'ldr', label: 'LDR' }, { id: 'ntc', label: 'NTC' }, { id: 'relay', label: 'Relay' }, { id: 'tm1637', label: 'TM1637' }, { id: 'watchdog', label: 'Watchdog' }, { id: 'serigrafia', label: 'Serigrafia' } ];
+            const STATUS_NA = 'N/A'; const STATUS_OK = 'OK'; const STATUS_FALHA = 'FALHA';
+            const statusIcons = { [STATUS_NA]: 'fas fa-minus-circle', [STATUS_OK]: 'fas fa-check-circle', [STATUS_FALHA]: 'fas fa-times-circle' };
+            const statusCycle = [STATUS_NA, STATUS_OK, STATUS_FALHA];
+            const hideMap = { 'HF801': ['aht10'], 'HF810': ['aht10'], 'HF900': ['aht10'], 'HF405': ['aht10', 'ntc', 'botao_central'], 'HF918': ['ntc'] };
+
+            const recallContainer = document.getElementById('recall-container');
+            const loginScreen = recallContainer.querySelector('#loginScreen');
+            const testerNameInput = recallContainer.querySelector('#testerName');
+            const loginBtn = recallContainer.querySelector('#loginBtn');
+            const mainApp = recallContainer.querySelector('.app');
+            const testerNameDisplay = recallContainer.querySelector('#testerNameDisplay');
+            const testerNameText = recallContainer.querySelector('#testerNameText');
+            
+            const paletteColors = ['#A5D8FF', '#A7F3D0', '#FDE68A', '#FECACA']; let testerName = ''; let testerColor = paletteColors[0];
+            const modeloSelect = recallContainer.querySelector('#modelo');
+            const clienteInput = recallContainer.querySelector('#cliente');
+            const clienteField = recallContainer.querySelector('#clienteField');
+            const componentesField = recallContainer.querySelector('#componentesField');
+            const componentsDiv = recallContainer.querySelector('#components');
+            const enviarBtn = recallContainer.querySelector('#enviarBtn');
+            const form = recallContainer.querySelector('#dataForm');
+            const statusDiv = recallContainer.querySelector('#status');
+            const confirmSendModal = recallContainer.querySelector('#confirmSendModal');
+            const observacaoTextarea = recallContainer.querySelector('#observacao');
+            const confirmSendBtn = recallContainer.querySelector('#confirmSend');
+            const cancelSendBtn = recallContainer.querySelector('#cancelSend');
+            const feedbackModal = recallContainer.querySelector('#feedbackModal');
+            const feedbackBtn = recallContainer.querySelector('#feedbackBtn');
+            const feedbackTypeSelect = recallContainer.querySelector('#feedbackType');
+            const feedbackDescriptionTextarea = recallContainer.querySelector('#feedbackDescription');
+            const submitFeedbackBtn = recallContainer.querySelector('#submitFeedbackBtn');
+            const cancelFeedbackBtn = recallContainer.querySelector('#cancelFeedback');
+            const feedbackStatusDiv = recallContainer.querySelector('#feedbackStatus');
+            let estadoComponentes = {};
+            
+            function showStatusMessage(element, message, type = 'success') { element.textContent = message; element.className = `active ${type}`; if(element.id !== 'status') { element.classList.add('records-status'); } }
+            function clearStatusMessage(element) { element.textContent = ''; element.className = element.id === 'status' ? '' : 'records-status'; }
+            
+            loginBtn.addEventListener('click', () => {
+                const name = testerNameInput.value.trim(); if (name === '') { testerNameInput.focus(); return; }
+                testerName = name; testerNameText.textContent = testerName;
+                loginScreen.classList.add('hidden-auth');
+                mainApp.style.display = 'flex'; testerNameDisplay.style.display = 'flex';
+                setTimeout(() => { loginScreen.style.display = 'none'; }, 500);
+            });
+            testerNameInput.addEventListener('keypress', (event) => { if (event.key === "Enter") { event.preventDefault(); loginBtn.click(); } });
+            
+            modeloSelect.addEventListener('change', () => {
+                const modelo = modeloSelect.value; clienteInput.value = '';
+                if (modelo) { clienteField.classList.remove('hidden'); componentesField.classList.remove('hidden'); enviarBtn.classList.remove('hidden'); } 
+                else { clienteField.classList.add('hidden'); componentesField.classList.add('hidden'); enviarBtn.classList.add('hidden'); }
+                clearStatusMessage(statusDiv); generarComponentes(modelo);
+            });
+            
+            function generarComponentes(modelo) {
+                componentsDiv.innerHTML = ''; estadoComponentes = {}; if (!modelo) return;
+                const effectiveHideList = hideMap[modelo] || [];
+                componentes.forEach(comp => {
+                    if (!effectiveHideList.includes(comp.id)) {
+                        estadoComponentes[comp.id] = { status: STATUS_NA, obs: '' };
+                        const div = document.createElement('div'); div.className = 'component status-na'; div.dataset.componentId = comp.id; div.setAttribute('tabindex', '0');
+                        const infoDiv = document.createElement('div'); infoDiv.className = 'component-info';
+                        const icon = document.createElement('i'); icon.className = `icon ${statusIcons[STATUS_NA]}`;
+                        const nome = document.createElement('span'); nome.textContent = comp.label;
+                        const obsTextarea = document.createElement('textarea'); obsTextarea.className = 'component-obs hidden'; obsTextarea.placeholder = 'Detalhe a falha aqui...';
+                        infoDiv.append(nome, obsTextarea); div.append(infoDiv, icon); componentsDiv.appendChild(div);
+                        const changeStatus = () => {
+                            const currentStatus = estadoComponentes[comp.id].status; const nextIndex = (statusCycle.indexOf(currentStatus) + 1) % statusCycle.length; const newStatus = statusCycle[nextIndex];
+                            estadoComponentes[comp.id].status = newStatus; div.className = `component status-${newStatus.toLowerCase().replace('/', '')}`; icon.className = `icon ${statusIcons[newStatus]}`;
+                            obsTextarea.classList.toggle('hidden', newStatus !== STATUS_FALHA);
+                            if (newStatus !== STATUS_FALHA) { obsTextarea.value = ''; estadoComponentes[comp.id].obs = ''; } else { obsTextarea.focus(); }
+                        };
+                        div.addEventListener('click', changeStatus); 
+                        div.addEventListener('keypress', (e) => { 
+                            if (e.key === 'Enter' || e.key === ' ') { 
+                                e.preventDefault(); // Impede o comportamento padrão da tecla (ex: rolagem da tela com espaço)
+                                changeStatus(); 
+                            } 
+                        });
+                        // Adicionado e.stopPropagation() para keypress na textarea para evitar que o evento propague para o div pai
+                        obsTextarea.addEventListener('click', (e) => e.stopPropagation()); 
+                        obsTextarea.addEventListener('keypress', (e) => e.stopPropagation()); 
+                        obsTextarea.addEventListener('input', (e) => { estadoComponentes[comp.id].obs = e.target.value; });
+                    }
+                });
+            }
+
+            form.addEventListener('submit', e => {
+                e.preventDefault(); clearStatusMessage(statusDiv);
+                if (!modeloSelect.value) { showStatusMessage(statusDiv, 'Por favor, selecione um modelo.', 'error'); return; }
+                if (!clienteInput.value.trim()) { showStatusMessage(statusDiv, 'Por favor, informe o nome do cliente.', 'error'); return; }
+                const unmarkedComponent = Object.entries(estadoComponentes).find(([id, state]) => { return recallContainer.querySelector(`.component[data-component-id="${id}"]`) && state.status === STATUS_NA; });
+                if (unmarkedComponent) {
+                    showStatusMessage(statusDiv, `Verifique todos os componentes antes de enviar.`, 'error');
+                    const element = recallContainer.querySelector(`.component[data-component-id="${unmarkedComponent[0]}"]`);
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' }); element.classList.add('unmarked-highlight'); setTimeout(() => element.classList.remove('unmarked-highlight'), 2500); return;
+                }
+                confirmSendModal.classList.add('visible');
+            });
+            confirmSendBtn.addEventListener('click', () => { confirmSendModal.classList.remove('visible'); enviarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...'; enviarBtn.disabled = true; enviarDados(); });
+            cancelSendBtn.addEventListener('click', () => { confirmSendModal.classList.remove('visible'); });
+
+            function enviarDados() {
+                const basePayload = { action: 'create', data: new Date().toISOString(), modelo: form.modelo.value, cliente: form.cliente.value, nome_tester: testerName, tester_color: testerColor, observacao: observacaoTextarea.value.trim() };
+                const allComponentData = {};
+                componentes.forEach(comp => {
+                    if (estadoComponentes.hasOwnProperty(comp.id)) {
+                        const state = estadoComponentes[comp.id];
+                        allComponentData[comp.id] = state.status === STATUS_FALHA && state.obs.trim() ? `${state.status} (${state.obs.trim()})` : state.status;
+                    } else {
+                        allComponentData[comp.id] = 'N/A';
+                    }
+                });
+                const finalPayload = { ...basePayload, ...allComponentData };
+                fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(finalPayload) })
+                .then(() => { showStatusMessage(statusDiv, 'Dados enviados com sucesso!', 'success'); form.reset(); componentsDiv.innerHTML = ''; clienteField.classList.add('hidden'); componentesField.classList.add('hidden'); enviarBtn.classList.add('hidden'); observacaoTextarea.value = ''; })
+                .catch(err => { showStatusMessage(statusDiv, 'Erro ao enviar os dados.', 'error'); })
+                .finally(() => { enviarBtn.disabled = false; enviarBtn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right: 8px;"></i>Enviar Teste'; });
+            }
+
+            document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { recallContainer.querySelector('.modal.visible')?.classList.remove('visible'); } });
+            
+            function initializeColorSelector() {
+                const container = recallContainer.querySelector('#colorOptionsContainer'); container.innerHTML = '';
+                paletteColors.forEach(color => {
+                    const option = document.createElement('div'); option.className = 'color-option'; option.style.backgroundColor = color; option.dataset.color = color;
+                    const checkIcon = document.createElement('i'); checkIcon.className = 'fas fa-check'; option.appendChild(checkIcon);
+                    if (color === testerColor) { option.classList.add('selected'); }
+                    option.addEventListener('click', () => { testerColor = color; container.querySelector('.selected')?.classList.remove('selected'); option.classList.add('selected'); });
+                    container.appendChild(option);
+                });
+            }
+            testerNameInput.focus(); initializeColorSelector(); mainApp.style.display = 'none'; loginScreen.classList.remove('hidden-auth');
+            feedbackBtn.addEventListener('click', () => feedbackModal.classList.add('visible'));
+            cancelFeedbackBtn.addEventListener('click', () => feedbackModal.classList.remove('visible'));
+            submitFeedbackBtn.addEventListener('click', async () => {
+                const type = feedbackTypeSelect.value; const description = feedbackDescriptionTextarea.value.trim();
+                if (description === '') { showStatusMessage(feedbackStatusDiv, 'Por favor, descreva seu feedback.', 'error'); return; }
+                submitFeedbackBtn.disabled = true; submitFeedbackBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+                try {
+                    const payload = { action: 'submitFeedback', timestamp: new Date().toISOString(), nome_tester: testerName, tipo: type, descricao: description };
+                    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    showStatusMessage(feedbackStatusDiv, 'Feedback enviado com sucesso!', 'success'); setTimeout(() => { feedbackModal.classList.remove('visible'); clearStatusMessage(feedbackStatusDiv); }, 2500);
+                } catch (error) { showStatusMessage(feedbackStatusDiv, 'Falha ao enviar feedback.', 'error');
+                } finally { submitFeedbackBtn.disabled = false; submitFeedbackBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar'; }
+            });
+        }
+
+        // --- SCRIPT DA ÁREA DE PRODUÇÃO ---
+        function initProducaoApp() {
+            const producaoContainer = document.getElementById('producao-container');
+            const mainCategoriesDiv = producaoContainer.querySelector('#producao-main-categories');
+            const subCategoriesDiv = producaoContainer.querySelector('#producao-sub-categories');
+            const subCategoryTitle = producaoContainer.querySelector('#sub-category-title');
+            const subCategoryContent = producaoContainer.querySelector('#sub-category-content');
+            const backButton = producaoContainer.querySelector('#backToMainProdBtn');
+
+            // Novo modal de detalhes
+            const detailModal = document.getElementById('detailModal');
+            const detailModalTitle = document.getElementById('detailModalTitle');
+            const detailModalContent = document.getElementById('detailModalContent');
+            const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
+
+            let navigationStack = []; // Stack para rastrear as categorias visitadas
+
+            // Objeto com os detalhes para cada item
+            const producaoDetails = {
+                'sonda': 'Aqui você encontra informações detalhadas sobre o processo de fabricação de sondas, incluindo materiais, etapas de montagem, e padrões de qualidade.',
+                'termostatos': 'Explore o guia completo para a fabricação de termostatos, desde a seleção de componentes até os procedimentos de teste final.',
+                'hf801_prod': 'Detalhes específicos para a fabricação do modelo HF801, com diagramas e verificações de montagem. Este guia aborda o *como* montar, o *porquê* de cada etapa e as *melhores práticas* para garantir a qualidade do produto final.',
+                'hf810_prod': 'Processos e instruções para a produção do termostato HF810, garantindo sua precisão e durabilidade. Aprenda a *como* otimizar a linha de montagem e *por que* certas etapas são cruciais para a performance do dispositivo.',
+                'hf900_prod': 'Guia de fabricação para o modelo HF900, com foco em calibração e testes de performance. Entenda *como* realizar a calibração correta e *por que* testes rigorosos são essenciais para a confiabilidade do produto.',
+                'hf918_prod': 'Informações sobre a linha de produção do HF918, incluindo montagem de circuitos e integração de sensores. Descubra *como* integrar os componentes eletrônicos e *por que* a correta instalação dos sensores é vital para o funcionamento.',
+                'iluminacao': 'Acesse os procedimentos de fabricação para todos os produtos de iluminação, cobrindo aspectos de design e eficiência energética.',
+                'sc101_prod': 'Instruções de montagem e controle de qualidade para o módulo de iluminação SC101. Saiba *como* montar cada parte e *por que* a atenção aos detalhes garante a durabilidade.',
+                'sc104_prod': 'Detalhes da fabricação do SC104, com ênfase na durabilidade dos componentes e desempenho luminoso. Descubra *como* assegurar o desempenho máximo e *por que* a escolha dos materiais é fundamental.',
+                'sc106_prod': 'Passos para a produção do SC106, assegurando a correta instalação dos LEDs e dissipação de calor. Entenda *como* otimizar a dissipação de calor e *por que* isso impacta a vida útil do LED.',
+                'sc109_prod': 'Guia de fabricação do SC109, com foco nos aspectos de design e funcionalidade inteligente. Aprenda *como* implementar as funcionalidades inteligentes e *por que* o design é crucial para a experiência do usuário.',
+                'modulos-iluminacao_prod': 'Documentação completa para a montagem de diversos módulos de iluminação, incluindo compatibilidade e testes elétricos. Aqui você encontrará guias sobre *como* montar, *por que* cada etapa é importante e as *melhores práticas* para cada módulo.',
+                'sl201': 'Detalhes de fabricação para o módulo SL201, cobrindo o processo de montagem e calibração. Saiba *como* montar o SL201 e *por que* cada componente é crucial para sua performance.',
+                'sd211': 'Instruções de produção do módulo SD211, com foco na integração de sensores e testes de funcionalidade. Entenda *como* integrar os sensores e *por que* a verificação da funcionalidade é essencial.',
+                'sd221': 'Guia para a fabricação do SD221, abordando a montagem dos componentes eletrônicos e o controle de qualidade final. Descubra *como* montar com precisão e *por que* o controle de qualidade garante a confiabilidade.',
+                'st401': 'Processos para a produção do módulo ST401, incluindo montagem de circuitos e testes de estresse. Aprenda *como* realizar testes de estresse e *por que* eles são importantes para a robustez do módulo.',
+                'filtro_contatora': 'Informações detalhadas sobre a fabricação e aplicação de filtros de contatora, essenciais para a proteção de sistemas elétricos. Compreenda *como* o filtro protege o sistema e *por que* sua correta instalação é vital.',
+                'rele_ac': 'Descubra os métodos de produção de relés AC, com foco na segurança e na performance em ambientes de corrente alternada. Saiba *como* produzir um relé AC seguro e eficiente e *por que* a qualidade da bobina é crucial.'
+            };
+
+            const producaoCategories = [
+                { id: 'sonda', label: 'Fabricação de Sonda', icon: 'fas fa-thermometer-half' },
+                { id: 'termostatos', label: 'Fabricação de Termostatos', icon: 'fas fa-temperature-low', subcategories: [ 
+                    { id: 'hf801_prod', label: 'HF801', icon: 'fas fa-microchip' },
+                    { id: 'hf810_prod', label: 'HF810', icon: 'fas fa-microchip' },
+                    { id: 'hf900_prod', label: 'HF900', icon: 'fas fa-microchip' },
+                    { id: 'hf918_prod', label: 'HF918', icon: 'fas fa-microchip' }
+                ]},
+                { id: 'iluminacao', label: 'Fabricação de Iluminação', icon: 'fas fa-lightbulb', subcategories: [
+                    { id: 'sc101_prod', label: 'SC101', icon: 'fas fa-lightbulb' },
+                    { id: 'sc104_prod', label: 'SC104', icon: 'fas fa-lightbulb' },
+                    { id: 'sc106_prod', label: 'SC106', icon: 'fas fa-lightbulb' },
+                    { id: 'sc109_prod', label: 'SC109', icon: 'fas fa-lightbulb' },
+                    { id: 'modulos-iluminacao_prod', label: 'Módulos de Iluminação', icon: 'fas fa-boxes', subcategories: [ // Novas subcategorias aqui
+                        { id: 'sl201', label: 'SL201', icon: 'fas fa-cube' },
+                        { id: 'sd211', label: 'SD211', icon: 'fas fa-cube' },
+                        { id: 'sd221', label: 'SD221', icon: 'fas fa-cube' },
+                        { id: 'st401', label: 'ST401', icon: 'fas fa-cube' }
+                    ]}
+                ]},
+                { id: 'filtro_contatora', label: 'Filtro de Contatora', icon: 'fas fa-filter' }, 
+                { id: 'rele_ac', label: 'Relé AC', icon: 'fas fa-bolt' }
+            ];
+
+            // Função para exibir o modal de detalhes
+            function showDetailModal(title, content) {
+                detailModalTitle.textContent = title;
+                detailModalContent.textContent = content || 'Nenhuma informação detalhada disponível para este item no momento.';
+                detailModal.classList.add('visible');
+            }
+
+            // Event listener para fechar o modal
+            closeDetailModalBtn.addEventListener('click', () => {
+                detailModal.classList.remove('visible');
+            });
+            // Fechar modal clicando fora dele
+            detailModal.addEventListener('click', (event) => {
+                if (event.target === detailModal) {
+                    detailModal.classList.remove('visible');
+                }
+            });
+
+
+            function renderMainCategories() {
+                mainCategoriesDiv.innerHTML = '';
+                navigationStack = []; // Limpa a stack ao voltar para as categorias principais
+                producaoCategories.forEach(category => {
+                    const card = document.createElement('div');
+                    card.className = 'cursor-pointer group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 ease-in-out flex flex-col text-left';
+                    card.innerHTML = `
+                        <div class="flex-shrink-0"><i class="${category.icon} text-4xl text-purple-600 mb-4"></i></div>
+                        <div class="flex-grow">
+                            <h3 class="text-2xl font-semibold mb-2 text-slate-900">${category.label}</h3>
+                            <p class="text-slate-600">
+                                ${category.id === 'termostatos' ? 'Inclui modelos HF801, HF810, HF900, HF918.' : 'Informações de produção.'}
+                            </p>
+                        </div>
+                        <div class="mt-6"><span class="font-semibold text-purple-600 group-hover:text-purple-700 transition-colors">Ver Detalhes <i class="fas fa-arrow-right ml-1"></i></span></div>
+                    `;
+                    card.addEventListener('click', () => handleCategoryClick(category));
+                    mainCategoriesDiv.appendChild(card);
+                });
+                mainCategoriesDiv.classList.remove('hidden');
+                subCategoriesDiv.classList.add('hidden');
+                backButton.classList.add('hidden'); // Esconde o botão de voltar nas categorias principais
+            }
+
+            function handleCategoryClick(category) {
+                if (category.subcategories && category.subcategories.length > 0) {
+                    navigationStack.push(category); // Adiciona a categoria atual à stack
+                    renderSubCategories(category);
+                    backButton.classList.remove('hidden'); // Mostra o botão de voltar
+                } else {
+                    showDetailModal(category.label, producaoDetails[category.id]);
+                }
+            }
+
+            function renderSubCategories(parentCategoryData) {
+                subCategoryTitle.innerHTML = `<i class="${parentCategoryData.icon} mr-2"></i>${parentCategoryData.label}`;
+                subCategoryContent.innerHTML = ''; 
+
+                parentCategoryData.subcategories.forEach(sub => {
+                    const subCard = document.createElement('div');
+                    subCard.className = 'cursor-pointer group bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out flex flex-col text-left';
+                    subCard.innerHTML = `
+                        <div class="flex-shrink-0"><i class="${sub.icon} text-3xl text-blue-500 mb-3"></i></div>
+                        <div class="flex-grow">
+                            <h3 class="text-xl font-semibold mb-1 text-slate-800">${sub.label}</h3>
+                            <p class="text-slate-500">${sub.description || 'Detalhes de fabricação.'}</p>
+                        </div>
+                        <div class="mt-4"><span class="font-semibold text-blue-500 group-hover:text-blue-600 transition-colors">Ver Mais <i class="fas fa-arrow-right ml-1"></i></span></div>
+                    `;
+                    subCard.addEventListener('click', () => {
+                        if (sub.subcategories && sub.subcategories.length > 0) {
+                            navigationStack.push(sub); // Adiciona esta subcategoria à stack
+                            renderSubCategories(sub);
+                        } else {
+                            showDetailModal(sub.label, producaoDetails[sub.id]);
+                        }
+                    });
+                    subCategoryContent.appendChild(subCard);
+                });
+                
+                mainCategoriesDiv.classList.add('hidden');
+                subCategoriesDiv.classList.remove('hidden');
+                backButton.classList.remove('hidden'); // Garante que o botão de voltar esteja visível
+            }
+
+            backButton.addEventListener('click', () => {
+                navigationStack.pop(); // Remove a categoria atual da stack
+                if (navigationStack.length === 0) {
+                    renderMainCategories(); // Se a stack estiver vazia, volta para as categorias principais
+                } else {
+                    renderSubCategories(navigationStack[navigationStack.length - 1]); // Renderiza a categoria anterior
+                }
+            });
+
+            // Inicializa mostrando as categorias principais
+            renderMainCategories();
+        }
+    </script>
+</body>
+</html>
